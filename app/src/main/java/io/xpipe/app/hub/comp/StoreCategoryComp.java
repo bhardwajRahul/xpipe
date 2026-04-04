@@ -278,6 +278,24 @@ public class StoreCategoryComp extends SimpleRegionBuilder {
             StoreViewState.get()
                     .getSortedCategories(getCategory().getRoot(), true)
                     .getList()
+                    .stream()
+                    .filter(w -> {
+                        var isSource = DataStorage.get().getCategoryParentHierarchy(getCategory().getCategory())
+                                .stream().anyMatch(h -> h.getUuid().equals(DataStorage.SCRIPT_SOURCES_CATEGORY_UUID));
+                        if (isSource) {
+                            return DataStorage.get().getCategoryParentHierarchy(w.getCategory()).stream()
+                                    .anyMatch(h -> h.getUuid().equals(DataStorage.SCRIPT_SOURCES_CATEGORY_UUID));
+                        }
+
+                        var isScript = DataStorage.get().getCategoryParentHierarchy(getCategory().getCategory())
+                                .stream().anyMatch(h -> h.getUuid().equals(DataStorage.ALL_SCRIPTS_CATEGORY_UUID));
+                        if (isScript) {
+                            return DataStorage.get().getCategoryParentHierarchy(w.getCategory()).stream()
+                                    .noneMatch(h -> h.getUuid().equals(DataStorage.SCRIPT_SOURCES_CATEGORY_UUID));
+                        }
+
+                        return true;
+                    })
                     .forEach(storeCategoryWrapper -> {
                         var m = new CustomMenuItem();
 
