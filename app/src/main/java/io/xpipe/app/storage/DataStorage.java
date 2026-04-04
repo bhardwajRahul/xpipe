@@ -1060,6 +1060,11 @@ public abstract class DataStorage {
             return;
         }
 
+        // There is no proper fallback for these cases
+        if (cat.getParentCategory().equals(ALL_SCRIPTS_CATEGORY_UUID) || cat.getParentCategory().equals(ALL_IDENTITIES_CATEGORY_UUID)) {
+            deleteEntries = true;
+        }
+
         var toDelete = new ArrayList<DataStoreCategory>();
         if (deleteChildren) {
             for (DataStoreCategory other : getStoreCategories()) {
