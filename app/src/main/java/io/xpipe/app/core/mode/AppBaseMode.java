@@ -74,6 +74,7 @@ public class AppBaseMode extends AppOperationMode {
         WindowsRegistry.init();
         AppAvCheck.check();
         AppJavaOptionsCheck.check();
+        AppHardwareAccelerationDisableCheck.check();
         AppSid.init();
         AppBeaconServer.init();
         AppLayoutModel.init();

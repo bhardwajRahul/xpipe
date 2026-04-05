@@ -212,6 +212,7 @@ public class BitwardenPasswordManager implements PasswordManager {
                     .setEnvironmentVariable(
                             "BITWARDENCLI_APPDATA_DIR",
                             AppCache.getBasePath().resolve("bitwarden").toString());
+            Files.createDirectories(AppCache.getBasePath().resolve("bitwarden"));
         }
         SHELL.start();
         return SHELL;
