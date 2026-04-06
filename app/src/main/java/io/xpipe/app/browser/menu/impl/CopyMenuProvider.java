@@ -19,7 +19,7 @@ public class CopyMenuProvider implements BrowserMenuLeafProvider {
 
     @Override
     public void execute(BrowserFileSystemTabModel model, List<BrowserEntry> entries) {
-        BrowserClipboard.startCopy(model.getCurrentDirectory(), entries);
+        BrowserClipboard.startCopy(model.getTargetDirectory(entries.getFirst()), entries);
     }
 
     @Override

@@ -20,7 +20,7 @@ public class ComputeDirectorySizesActionProvider implements BrowserActionProvide
 
     @Override
     public boolean isApplicable(BrowserFileSystemTabModel model, List<BrowserEntry> entries) {
-        return model.getFileSystem().supportsDirectorySizes();
+        return model.getCurrentDirectory() != null && model.getFileSystem().supportsDirectorySizes();
     }
 
     @Jacksonized

@@ -29,6 +29,10 @@ public class PasteMenuProvider implements BrowserMenuLeafProvider {
         var target = entries.size() == 1 && entries.getFirst().getRawFileEntry().getKind() == FileKind.DIRECTORY
                 ? entries.getFirst().getRawFileEntry()
                 : model.getCurrentDirectory();
+        if (target == null) {
+            return;
+        }
+
         var files = clipboard.getEntries();
         if (files.size() == 0) {
             return;

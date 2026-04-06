@@ -33,7 +33,7 @@ public class TarActionProvider implements BrowserActionProvider {
             var sc = model.getFileSystem().getShell().orElseThrow();
             var args = "c" + (gz ? "z" : "") + "f";
             var tar = CommandBuilder.of().add("tar", args).addFile(target);
-            var base = model.getTargetDirectory(getEntries().getFirst());
+            var base = model.getTargetDirectoryPath(getEntries().getFirst());
 
             if (directoryContentOnly) {
                 var dir = getEntries().getFirst().getRawFileEntry().getPath();
