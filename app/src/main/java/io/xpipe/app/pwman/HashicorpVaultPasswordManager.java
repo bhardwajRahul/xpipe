@@ -380,7 +380,8 @@ public class HashicorpVaultPasswordManager implements PasswordManager {
 
                 var l = new ArrayList<String>();
                 subData.fieldNames().forEachRemaining(l::add);
-                throw ErrorEventFactory.expected(new IllegalArgumentException("Found data for specified key mapping, but only found the following unmapped keys: " + l));
+                throw ErrorEventFactory.expected(
+                        new IllegalArgumentException("Found no data for specified fields, but only found the following unmapped fields: " + l));
             }
             return r;
         } catch (Exception e) {

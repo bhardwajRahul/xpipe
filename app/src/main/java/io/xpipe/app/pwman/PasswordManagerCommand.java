@@ -1,5 +1,8 @@
 package io.xpipe.app.pwman;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.xpipe.app.comp.RegionBuilder;
 import io.xpipe.app.comp.base.IntegratedTextAreaComp;
 import io.xpipe.app.core.AppFontSizes;
@@ -10,10 +13,12 @@ import io.xpipe.app.platform.BindingsHelper;
 import io.xpipe.app.platform.MenuHelper;
 import io.xpipe.app.platform.OptionsBuilder;
 import io.xpipe.app.prefs.ExternalApplicationHelper;
+import io.xpipe.app.prefs.PasswordManagerTestComp;
 import io.xpipe.app.process.ShellControl;
 import io.xpipe.app.process.ShellScript;
 import io.xpipe.app.storage.DataStorage;
 
+import io.xpipe.core.JacksonMapper;
 import javafx.beans.property.Property;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.scene.control.MenuItem;
@@ -22,6 +27,12 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 import lombok.Builder;
 import lombok.Value;
 import lombok.extern.jackson.Jacksonized;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @JsonTypeName("passwordManagerCommand")
 @Value
@@ -79,6 +90,8 @@ public class PasswordManagerCommand implements PasswordManager {
                 .nameAndDescription("passwordManagerCommand")
                 .addComp(area, script)
                 .addComp(templates)
+                .nameAndDescription("passwordManagerTest")
+                .addComp(new PasswordManagerTestComp(true))
                 .bind(() -> new PasswordManagerCommand(script.get()), property);
     }
 
@@ -117,9 +130,71 @@ public class PasswordManagerCommand implements PasswordManager {
             return null;
         }
 
-        var cmd = ExternalApplicationHelper.replaceVariableArgument(script.getValue(), "KEY", key);
-        var secret = retrieveWithCommand(cmd);
-        return Result.of(Credentials.of(null, secret), null);
+        String effectiveKey;
+        Map<String, String> fieldMap;
+        var keySplit = key.split("\\?", 2);
+        if (keySplit.length != 2 || keySplit[0].isEmpty() || keySplit[1].isEmpty()) {
+            effectiveKey = key;
+            fieldMap = null;
+        } else {
+            var rawKey = keySplit[0];
+            var rawMap = Arrays.stream(keySplit[1].split("&"))
+                    .filter(s -> s.split("=").length == 2)
+                    .collect(Collectors.toMap(s -> s.split("=", 2)[0], s -> s.split("=", 2)[1]));
+            if (rawMap.isEmpty()) {
+                throw ErrorEventFactory.expected(new IllegalArgumentException("Invalid secret reference format"));
+            }
+            effectiveKey = rawKey;
+            fieldMap = rawMap;
+        }
+
+        var cmd = ExternalApplicationHelper.replaceVariableArgument(script.getValue(), "KEY", effectiveKey);
+        var out = retrieveWithCommand(cmd);
+        if (out == null) {
+            return null;
+        }
+
+        if (fieldMap == null && out.startsWith("{")) {
+            ErrorEventFactory.fromThrowable(new IllegalArgumentException(
+                    "Returned output is json, but no field mapping has been specified")).expected().handle();
+            return null;
+        }
+
+        if (fieldMap != null && out.startsWith("{")) {
+            JsonNode json = null;
+            try {
+                json = JacksonMapper.getDefault().readTree(out);
+            } catch (Exception ignored) {}
+
+            if (json != null && json.isObject()) {
+                var username = Optional.ofNullable(json.get(fieldMap.get("user"))).map(JsonNode::textValue).orElse(null);
+                var password = Optional.ofNullable(json.get(fieldMap.get("pass"))).map(JsonNode::textValue).orElse(null);
+                var publicKey = Optional.ofNullable(json.get(fieldMap.get("public-key"))).map(JsonNode::textValue).orElse(null);
+                var privateKey = Optional.ofNullable(json.get(fieldMap.get("private-key"))).map(JsonNode::textValue).orElse(null);
+                var creds = Credentials.of(username, password);
+                var sshKey = SshKey.of(publicKey, privateKey);
+                var r = Result.of(creds, sshKey);
+                if (r == null) {
+                    if (json.size() == 0) {
+                        throw ErrorEventFactory.expected(new IllegalArgumentException("Returned json output is empty"));
+                    }
+
+                    var l = new ArrayList<String>();
+                    json.fieldNames().forEachRemaining(l::add);
+                    throw ErrorEventFactory.expected(
+                            new IllegalArgumentException("Found no data for specified fields, but only found the following unmapped fields: " + l));
+                }
+                return r;
+            }
+        }
+
+        if (out.contains("\n")) {
+            ErrorEventFactory.fromThrowable(new IllegalArgumentException(
+                    "Returned secret output contains multiple lines. For raw secrets, the output should only be a single line string")).expected().handle();
+            return null;
+        }
+
+        return Result.of(Credentials.of(null, out), null);
     }
 
     @Override
