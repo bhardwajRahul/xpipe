@@ -158,10 +158,14 @@ public class TerminalLauncherManager {
         var request = UUID.randomUUID();
         ShellControl session;
         try {
-            session = ref.getStore().getOrStartSession();
+            session = ref.getStore().standaloneControl();
         } catch (Exception e) {
             throw new BeaconServerException(e);
         }
+
+        // These prepend scripts, not append
+        TerminalPromptManager.configurePromptScript(session);
+        ProcessControlProvider.get().withDefaultScripts(session);
 
         ProcessControl control;
         if (arguments.size() > 0) {
