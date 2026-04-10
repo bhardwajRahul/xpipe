@@ -31,7 +31,7 @@ public abstract class BrowserAction extends StoreAction<FileSystemStore> {
     @Override
     protected void beforeExecute() throws Exception {
         // Don't switch on chooser actions
-        if (model.getBrowserModel() instanceof BrowserFullSessionModel) {
+        if (model != null && model.getBrowserModel() instanceof BrowserFullSessionModel) {
             AppLayoutModel.get().selectBrowser();
         }
 
