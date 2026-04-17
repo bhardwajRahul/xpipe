@@ -157,6 +157,9 @@ public class ListBoxViewComp<T> extends RegionBuilder<ScrollPane> {
         });
         vbox.getChildren().addListener((ListChangeListener<? super Node>) (change) -> {
             dirty.set(true);
+            Platform.runLater(() -> {
+                dirty.set(true);
+            });
         });
         shown.addListener((ListChangeListener<? super T>) (change) -> {
             Platform.runLater(() -> {
